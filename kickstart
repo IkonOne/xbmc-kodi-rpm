@@ -1,0 +1,159 @@
+#!/bin/bash
+
+# TODO clean depenedencies
+# TODO add other versions of the library...
+
+#### VARS
+MAJORVERSION=16
+MINORVERSION=0
+CODENAME=Jarvis
+
+VERSION=${MAJORVERSION}.${MINORVERSION}-${CODENAME}
+
+XBMC=xbmc
+
+BUILD_PREFIX="/usr/local"
+
+PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
+CFLAGS="$CFLAGS -I${BUILD_PREFIX}/include"
+CXXFLAGS="$CFLAGS -I${BUILD_PREFIX}/include"
+LDFLAGS="-L${BUILD_PREFIX}/lib -lcrossguid -luuid -ldcadec"
+
+#### FUNCTIONS
+
+## Function prefixes are used like...
+# proc - process files
+# cmd - execute command line parameters
+# dep - buld and clean dependencies
+
+function check_prereqs {
+	echo_bold Building necessary folder structure
+	[ -d "./archives/" ] || mkdir archives
+	[ -d "./SOURCES/" ] || mkdir SOURCES
+	[ -d "./xbmc/" ] || mkdir xbmc
+}
+
+function cmd_install {
+	check_prereqs
+	proc_sources
+
+	proc_deps "build"
+
+	echo Ready to run [rpmbuild -ba SPECFILE] from the SPECS directory
+}
+
+function cmd_clean {
+	proc_deps "clean"
+	clean
+}
+
+function clean {
+	echo_bold Cleaning up...
+	rm ${VERSION}.tar.gz
+	rm -rf SOURCES/${VERSION}.tar.gz
+	rm -rf xbmc
+}
+
+function proc_sources {
+	echo_bold Processing the sources archive.
+
+	# Download the source from github if it doesn't exist in the archives directory
+	if test -e ./archives/${VERSION}.tar.gz
+	then
+		cp ./archives/${VERSION}.tar.gz .
+	else
+		echo_bold Downloading the sources from the github archive...
+		wget https://github.com/xbmc/xbmc/archive/${VERSION}.tar.gz
+		cp ${VERSION}.tar.gz ./archives/
+	fi
+	
+	rm -rf SOURCES/*
+	tar -xzf ${VERSION}.tar.gz --strip=1 -C xbmc
+	cp ${VERSION}.tar.gz SOURCES
+}
+
+function proc_deps {
+	case "$1" in
+		"build") echo_bold Building dependencies...
+		;;
+		"clean") echo_bold Cleaning dependencies...
+		;;
+	esac
+
+	if [ $MAJORVERSION == 16 ]
+	then
+		dep_JsonSchemaBuilder $1
+		dep_libdcadec $1
+		dep_crossguid $1
+	fi
+}
+
+function dep_JsonSchemaBuilder {
+	echo_dep JsonSchemaBuilder
+
+	case "$1" in
+		"build")
+			make -C xbmc/tools/depends/native/JsonSchemaBuilder PREFIX=${BUILD_PREFIX}
+		;;
+		"clean")
+			rm ${BUILD_PREFIX}/bin/JsonSchemaBuilder
+		;;
+	esac
+}
+
+function dep_libdcadec {
+	echo_dep libdcadec
+
+	case "$1" in
+		"build")
+			make -C xbmc/tools/depends/target/libdcadec PREFIX=${BUILD_PREFIX}
+		;;
+		"clean")
+			echo cleaning... what???
+		;;
+	esac
+}
+
+function dep_crossguid {
+	echo_dep crossguid
+
+	case "$1" in
+		"build")
+			make -C xbmc/tools/depends/target/crossguid PREFIX=${BUILD_PREFIX}
+		;;
+		"clean")
+			echo haha cleaning??? LOLOL
+		;;
+	esac
+}
+
+function echo_dep {
+	echo_bold [DEPENDENCY] $1
+}
+
+function echo_bold {
+	echo -e "\e[1m$*\e[0m"
+}
+
+#### MAIN
+
+# command line switches
+option="${1}"
+case ${option} in
+	install)
+		cmd_install
+	;;
+	clean)
+		cmd_clean
+	;;
+	*)
+		echo Usage: kickstart [COMMAND] ...
+		echo
+		echo Kickstartst he creation of an XBMC RPM by downloading the necessary files from github and installing/cleaning dependencies
+		echo
+		echo Commands:
+		echo -e "\tinstall"
+		echo -e "\tclean"
+		echo -e "\thelp"
+	;;
+esac
