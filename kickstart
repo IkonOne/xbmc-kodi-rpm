@@ -12,12 +12,7 @@ VERSION=${MAJORVERSION}.${MINORVERSION}-${CODENAME}
 
 XBMC=xbmc
 
-BUILD_PREFIX="/usr/local"
-
-PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
-CFLAGS="$CFLAGS -I${BUILD_PREFIX}/include"
-CXXFLAGS="$CFLAGS -I${BUILD_PREFIX}/include"
-LDFLAGS="-L${BUILD_PREFIX}/lib -lcrossguid -luuid -ldcadec"
+BUILD_PREFIX="/usr/"
 
 #### FUNCTIONS
 
@@ -31,6 +26,16 @@ function check_prereqs {
 	[ -d "./archives/" ] || mkdir archives
 	[ -d "./SOURCES/" ] || mkdir SOURCES
 	[ -d "./xbmc/" ] || mkdir xbmc
+}
+
+function cmd_variables {
+	echo_bold Make sure you are sourcing the variables
+	echo eg: source ./kickstart variables
+	
+	export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig:/usr/lib64"
+	export CFLAGS="$CFLAGS -I${BUILD_PREFIX}/include"
+	export CXXFLAGS="$CFLAGS -I${BUILD_PREFIX}/include"
+	export LDFLAGS="-L${BUILD_PREFIX}/lib -lcrossguid -luuid -ldcadec"
 }
 
 function cmd_install {
@@ -93,7 +98,9 @@ function dep_JsonSchemaBuilder {
 
 	case "$1" in
 		"build")
-			make -C xbmc/tools/depends/native/JsonSchemaBuilder PREFIX=${BUILD_PREFIX}
+			make -C xbmc/tools/depends/native/JsonSchemaBuilder
+			sudo cp xbmc/tools/depends/native/JsonSchemaBuilder/bin/JsonSchemaBuilder ${BUILD_PREFIX}/bin
+			sudo chmod 775 ${BUILD_PREFIX}/bin/JsonSchemaBuilder
 		;;
 		"clean")
 			rm ${BUILD_PREFIX}/bin/JsonSchemaBuilder
@@ -140,6 +147,9 @@ function echo_bold {
 # command line switches
 option="${1}"
 case ${option} in
+	variables)
+		cmd_variables
+	;;
 	install)
 		cmd_install
 	;;
@@ -149,9 +159,10 @@ case ${option} in
 	*)
 		echo Usage: kickstart [COMMAND] ...
 		echo
-		echo Kickstartst he creation of an XBMC RPM by downloading the necessary files from github and installing/cleaning dependencies
+		echo Kickstarts he creation of an XBMC RPM by downloading the necessary files from github and installing/cleaning dependencies
 		echo
 		echo Commands:
+		echo -e "\tvariables"
 		echo -e "\tinstall"
 		echo -e "\tclean"
 		echo -e "\thelp"

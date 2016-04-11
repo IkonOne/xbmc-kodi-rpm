@@ -264,17 +264,20 @@ BuildRequires: doxygen
 rm -rf ./xbmc
 tar -xzf ../SOURCES/16.0-Jarvis.tar.gz --strip 1
 
+XBMC=$(pwd)
+
 %build
 ./bootstrap
-echo -e "\e[31mFinished Bootstrap\e[0m"
-echo %{_prefix}
-./configure --prefix=%{_prefix}
-echo -e "\e[31mFinished Configure\e[0m"
+echo -e "\e[92mFinished Bootstrap\e[0m"
+./configure --prefix=%{_prefix} --bindir=%{_bindir} --includedir=%{_includedir} \
+--libdir=%{_libdir} --datadir=%{_datadir} --with-ffmpeg=shared
+echo -e "\e[92mFinished Configure\e[0m"
 make %{?_smp_mflags}
-echo -e "\e[31mFinished Make\e[0m"
+echo -e "\e[92mFinished Make\e[0m"
 
 %install
 %make_install
+rm -rf %{buildroot}
 
 
 %files
