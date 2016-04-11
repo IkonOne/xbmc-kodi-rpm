@@ -28,6 +28,18 @@ function check_prereqs {
 	[ -d "./xbmc/" ] || mkdir xbmc
 }
 
+function cmd_builddep {
+	rpm -Uvh http://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-stable.noarch.rpm
+	rpm -Uvh http://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-stable.noarch.rpm
+
+	dnf builddep --spec SPECS/${VERSION}.spec
+}
+
+function cmd_source {
+	check_prereqs
+	proc_sources
+}
+
 function cmd_variables {
 	echo_bold Make sure you are sourcing the variables
 	echo eg: source ./kickstart variables
@@ -40,7 +52,6 @@ function cmd_variables {
 
 function cmd_install {
 	check_prereqs
-	proc_sources
 
 	proc_deps "build"
 
@@ -55,8 +66,9 @@ function cmd_clean {
 function clean {
 	echo_bold Cleaning up...
 	rm ${VERSION}.tar.gz
-	rm -rf SOURCES/${VERSION}.tar.gz
+	rm -rf SOURCES/xbmc-${VERSION}.tar.gz
 	rm -rf xbmc
+	rm -rf pristine
 }
 
 function proc_sources {
@@ -74,7 +86,20 @@ function proc_sources {
 	
 	rm -rf SOURCES/*
 	tar -xzf ${VERSION}.tar.gz --strip=1 -C xbmc
-	cp ${VERSION}.tar.gz SOURCES
+	rm -rf pristine
+	mkdir pristine
+	cp -rf xbmc/* pristine
+
+	cd pristine
+	rm -rf addons
+	rm -rf build-aux
+	rm -rf Kodi.xcodeproj
+	rm -rf project
+	rm -rf tools
+	tar -czf xbmc-${VERSION}.tar.gz ./*
+	mv xbmc-${VERSION}.tar.gz ../SOURCES
+	cd ..
+	rm -rf pristine
 }
 
 function proc_deps {
@@ -147,6 +172,12 @@ function echo_bold {
 # command line switches
 option="${1}"
 case ${option} in
+	builddep)
+		cmd_builddep
+	;;
+	source)
+		cmd_source
+	;;
 	variables)
 		cmd_variables
 	;;
@@ -162,6 +193,8 @@ case ${option} in
 		echo Kickstarts he creation of an XBMC RPM by downloading the necessary files from github and installing/cleaning dependencies
 		echo
 		echo Commands:
+		echo -e "\tbuilddep"
+		echo -e "\tsource"
 		echo -e "\tvariables"
 		echo -e "\tinstall"
 		echo -e "\tclean"
